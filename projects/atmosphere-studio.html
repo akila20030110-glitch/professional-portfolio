@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmosphere Studio | Creative Weather Experience</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+Sinhala:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'Noto Sans Sinhala', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 4s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'rain-drop': 'rainDrop 0.8s linear infinite',
+                        'cloud-drift': 'cloudDrift 8s linear infinite alternate',
+                        'sun-beam': 'sunBeam 6s linear infinite',
+                        'thunder-flash': 'thunderFlash 2.5s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-10px) rotate(2deg)' },
+                        },
+                        glow: {
+                            '0%': { opacity: '0.4', filter: 'blur(20px)' },
+                            '100%': { opacity: '0.8', filter: 'blur(30px)' },
+                        },
+                        rainDrop: {
+                            '0%': { transform: 'translateY(-100%)', opacity: '0' },
+                            '50%': { opacity: '0.8' },
+                            '100%': { transform: 'translateY(150%)', opacity: '0' }
+                        },
+                        cloudDrift: {
+                            '0%': { transform: 'translateX(-15px)' },
+                            '100%': { transform: 'translateX(15px)' }
+                        },
+                        sunBeam: {
+                            '0%': { transform: 'rotate(0deg) scale(1)' },
+                            '50%': { transform: 'rotate(180deg) scale(1.15)' },
+                            '100%': { transform: 'rotate(360deg) scale(1)' }
+                        },
+                        thunderFlash: {
+                            '0%, 90%, 100%': { opacity: '0.1', filter: 'brightness(1)' },
+                            '92%, 96%': { opacity: '0.85', filter: 'brightness(2)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Outfit', 'Noto Sans Sinhala', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphic Cards */
+        .glass-card {
+            background: rgba(18, 24, 38, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-4px);
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 12px 40px 0 rgba(14, 165, 233, 0.2);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(56, 189, 248, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(56, 189, 248, 0.6);
+        }
+
+        canvas#weatherCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Temperature Dynamic Background Animations */
+        .temp-fx-rain-drop {
+            position: absolute;
+            width: 2px;
+            height: 22px;
+            background: linear-gradient(to bottom, transparent, rgba(56, 189, 248, 0.8), rgba(255, 255, 255, 0.9));
+            border-radius: 999px;
+            pointer-events: none;
+            animation: rainDrop 0.75s linear infinite;
+        }
+
+        .temp-fx-cloud {
+            position: absolute;
+            color: rgba(203, 213, 225, 0.25);
+            filter: blur(1px);
+            pointer-events: none;
+            animation: cloudDrift 7s ease-in-out infinite alternate;
+        }
+
+        .temp-fx-sun {
+            position: absolute;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.35) 0%, rgba(245, 158, 11, 0.1) 60%, transparent 80%);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sunBeam 10s linear infinite;
+        }
+
+        .temp-fx-thunder {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, transparent 70%);
+            border-radius: 1.5rem;
+            pointer-events: none;
+            animation: thunderFlash 2.2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col relative selection:bg-sky-500 selection:text-white">
+
+    <!-- Interactive Background Canvas for Live Weather Visuals -->
+    <canvas id="weatherCanvas"></canvas>
+
+    <!-- Ambient Glowing Light Backgrounds -->
+    <div id="ambientGlow" class="fixed inset-0 pointer-events-none transition-all duration-1000 z-0 opacity-50 blur-3xl"
+         style="background: radial-gradient(circle at 50% 20%, rgba(14, 165, 233, 0.25), transparent 70%);"></div>
+
+    <!-- Main Container Layout -->
+    <div class="relative z-10 flex flex-col min-h-screen">
+        
+        <!-- Navigation Header -->
+        <header class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/30 animate-pulse-slow">
+                    <i class="fa-solid font-bold text-white text-xl fa-cloud-bolt"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-sky-200 to-sky-400 bg-clip-text text-transparent">
+                        Atmosphere<span class="text-sky-400 font-light">Studio</span>
+                    </h1>
+                    <p class="text-xs text-sky-300/70 font-medium tracking-wider uppercase" id="appSubtitle">
+                        Creative Weather Experience
+                    </p>
+                </div>
+            </div>
+
+            <!-- Search Bar & Controls -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                
+                <!-- Search Box -->
+                <div class="relative flex-1 sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-sky-400/60"></i>
+                    <input type="text" id="citySearchInput" 
+                           placeholder="Search City..." 
+                           class="w-full bg-slate-900/80 text-sm text-white placeholder-slate-400 pl-11 pr-10 py-3 rounded-2xl border border-slate-700/60 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/30 transition-all shadow-inner">
+                    <button id="searchBtn" title="Search" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-400 transition-colors">
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    <!-- Search Results Dropdown -->
+                    <div id="searchResults" class="absolute top-full left-0 right-0 mt-2 bg-slate-900/95 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden hidden z-50 divide-y divide-slate-800"></div>
+                </div>
+
+                <!-- Current Location Button -->
+                <button id="geoLocateBtn" title="My Location" class="p-3 bg-slate-800/80 hover:bg-sky-600/30 text-sky-400 hover:text-white rounded-2xl border border-slate-700/60 transition-all shadow-md active:scale-95">
+                    <i class="fa-solid fa-location-crosshairs text-lg"></i>
+                </button>
+
+                <!-- Ambient Audio Sound Generator Button -->
+                <button id="audioToggleBtn" title="Play Ambient Weather Sound" class="p-3 bg-slate-800/80 hover:bg-purple-600/30 text-purple-400 hover:text-white rounded-2xl border border-slate-700/60 transition-all shadow-md active:scale-95 relative">
+                    <i id="audioIcon" class="fa-solid fa-volume-xmark text-lg"></i>
+                    <span id="audioPulse" class="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full animate-ping hidden"></span>
+                </button>
+
+                <!-- Language Selection Dropdown Menu -->
+                <div class="relative" id="langSelectDropdownContainer">
+                    <button id="langSelectBtn" class="px-3.5 py-2 bg-slate-800/80 hover:bg-slate-700 text-sky-300 rounded-2xl border border-slate-700/60 text-xs font-semibold transition-all flex items-center gap-2 shadow-sm active:scale-95">
+                        <i class="fa-solid fa-language text-sky-400 text-base"></i>
+                        <span id="currentLangLabel">English</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-0.5"></i>
+                    </button>
+                    <!-- Dropdown Menu Options -->
+                    <div id="langDropdownMenu" class="absolute right-0 top-full mt-2 w-48 bg-slate-900/95 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden hidden z-50 divide-y divide-slate-800/60 backdrop-blur-md">
+                        <button onclick="setAppLanguage('en')" class="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-200 hover:bg-sky-600/20 hover:text-sky-300 flex items-center justify-between transition-colors">
+                            <span class="flex items-center gap-2">🇬🇧 <span>English</span></span>
+                            <i class="fa-solid fa-check text-sky-400 text-xs lang-check" id="check-en"></i>
+                        </button>
+                        <button onclick="setAppLanguage('si')" class="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-200 hover:bg-sky-600/20 hover:text-sky-300 flex items-center justify-between transition-colors">
+                            <span class="flex items-center gap-2">🇱🇰 <span>සිංහල (Sinhala)</span></span>
+                            <i class="fa-solid fa-check text-sky-400 text-xs lang-check hidden" id="check-si"></i>
+                        </button>
+                        <button onclick="setAppLanguage('ta')" class="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-200 hover:bg-sky-600/20 hover:text-sky-300 flex items-center justify-between transition-colors">
+                            <span class="flex items-center gap-2">🇱🇰 <span>தமிழ் (Tamil)</span></span>
+                            <i class="fa-solid fa-check text-sky-400 text-xs lang-check hidden" id="check-ta"></i>
+                        </button>
+                        <button onclick="setAppLanguage('ja')" class="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-200 hover:bg-sky-600/20 hover:text-sky-300 flex items-center justify-between transition-colors">
+                            <span class="flex items-center gap-2">🇯🇵 <span>日本語 (Japanese)</span></span>
+                            <i class="fa-solid fa-check text-sky-400 text-xs lang-check hidden" id="check-ja"></i>
+                        </button>
+                        <button onclick="setAppLanguage('fr')" class="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-200 hover:bg-sky-600/20 hover:text-sky-300 flex items-center justify-between transition-colors">
+                            <span class="flex items-center gap-2">🇫🇷 <span>Français (French)</span></span>
+                            <i class="fa-solid fa-check text-sky-400 text-xs lang-check hidden" id="check-fr"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Quick City Presets Badge Bar -->
+        <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
+            <span class="text-slate-400 flex items-center gap-1 font-medium"><i class="fa-solid fa-fire text-amber-400"></i> <span id="popularLabel">Popular:</span></span>
+            <button onclick="fetchWeatherForCity('Colombo')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">📍 Colombo</button>
+            <button onclick="fetchWeatherForCity('Kandy')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">⛰️ Kandy</button>
+            <button onclick="fetchWeatherForCity('Galle')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">🌊 Galle</button>
+            <button onclick="fetchWeatherForCity('Jaffna')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">🌴 Jaffna</button>
+            <button onclick="fetchWeatherForCity('Tokyo')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">🌸 Tokyo</button>
+            <button onclick="fetchWeatherForCity('London')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">🎡 London</button>
+            <button onclick="fetchWeatherForCity('New York')" class="px-3 py-1.5 rounded-full bg-slate-800/60 hover:bg-sky-500/20 hover:text-sky-300 border border-slate-700/50 transition-all whitespace-nowrap">🗽 New York</button>
+        </div>
+
+        <!-- Dynamic Weather Alert Banner (Shows up during Severe Rain/Thunderstorms) -->
+        <div id="weatherAlertBanner" class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-2 hidden transition-all duration-500">
+            <div class="p-3.5 rounded-2xl bg-gradient-to-r from-red-900/80 via-rose-900/70 to-red-950/80 border border-red-500/60 text-red-200 flex items-center justify-between shadow-lg shadow-red-900/30 animate-pulse">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-red-500/30 border border-red-400/50 flex items-center justify-center text-red-300 font-bold text-lg">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-red-100 uppercase tracking-wider" id="alertTitle">තද වැසි සහ කුණාටු අනතුරු ඇඟවීම (Heavy Weather Warning)</p>
+                        <p class="text-[11px] text-red-300/90" id="alertDesc">ප්‍රදේශයට අධික වර්ෂාපතනයක් වාර්තා වේ. සුරක්ෂිතව සිටින්න!</p>
+                    </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-lg bg-red-500/20 border border-red-400/40 text-red-200 text-[10px] font-mono font-bold uppercase">Severe Alert</span>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Viewport -->
+        <main class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT / TOP HERO WEATHER SECTION (Cols 1 to 7) -->
+            <section class="lg:col-span-7 flex flex-col gap-6">
+                
+                <!-- Main Weather Status Hero Card -->
+                <div class="glass-card glass-card-hover rounded-3xl p-6 sm:p-8 relative overflow-hidden flex flex-col justify-between min-h-[380px]">
+                    
+                    <!-- Decorative Background Radial Effect -->
+                    <div class="absolute -right-16 -top-16 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+                    <!-- Top Bar inside Card: City Name & Date/Time -->
+                    <div class="flex items-start justify-between relative z-10">
+                        <div>
+                            <div class="flex items-center gap-2 text-sky-400 font-semibold text-sm mb-1">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <span id="cityNameDisplay">Colombo</span>
+                                <span id="countryTag" class="bg-sky-500/20 text-sky-300 text-[10px] px-2 py-0.5 rounded-full border border-sky-500/30">LK</span>
+                            </div>
+                            <p id="localDateTime" class="text-xs text-slate-400 font-mono">Monday, Feb 10 • 14:30</p>
+                        </div>
+
+                        <!-- Unit Switcher & Refresh -->
+                        <div class="flex items-center gap-2">
+                            <button id="unitToggleBtn" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-sky-300 text-xs font-bold rounded-xl transition-all">
+                                °C
+                            </button>
+                            <button id="refreshBtn" title="Refresh Weather Data" class="p-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-sky-400 rounded-xl transition-all">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Center Section: Temperature Display with Dynamic Weather Visual Overlay & Animated Mascot Pet -->
+                    <div class="my-6 flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+                        
+                        <!-- Main Temperature Display Container with Weather FX Overlay -->
+                        <div id="tempDisplayWrapper" class="relative p-6 rounded-3xl bg-slate-900/40 border border-slate-800/80 overflow-hidden flex flex-col items-center sm:items-start text-center sm:text-left min-w-[260px]">
+                            
+                            <!-- DYNAMIC WEATHER EFFECT BACKDROP FOR TEMPERATURE AREA -->
+                            <div id="tempEffectOverlay" class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                                <!-- Dynamic weather elements (rain, sun beams, clouds, thunder flash) injected via JS -->
+                            </div>
+
+                            <div class="relative z-10 flex flex-col items-center sm:items-start">
+                                <div class="flex items-baseline gap-2">
+                                    <span id="currentTemp" class="text-7xl sm:text-8xl font-black bg-gradient-to-b from-white via-slate-100 to-sky-200 bg-clip-text text-transparent tracking-tight">
+                                        31
+                                    </span>
+                                    <span id="tempUnitDisplay" class="text-3xl font-light text-sky-400">°C</span>
+                                </div>
+                                <div class="mt-2 flex items-center gap-3">
+                                    <span id="weatherConditionBadge" class="px-4 py-1.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-200 text-sm font-semibold flex items-center gap-2 shadow-lg backdrop-blur-md">
+                                        <i id="heroConditionIcon" class="fa-solid fa-sun text-amber-400 animate-spin-slow"></i>
+                                        <span id="weatherConditionText">Clear Sky</span>
+                                    </span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-2 font-medium">
+                                    <span id="feelsLikeLabel">Feels Like:</span> <span id="feelsLikeTemp" class="font-bold text-slate-100">34°C</span> • 
+                                    <span id="minMaxTemp">Min 25°C / Max 33°C</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Animated Weather Mascot Avatar -->
+                        <div class="flex flex-col items-center justify-center">
+                            <div id="mascotContainer" class="w-36 h-36 relative flex items-center justify-center animate-float cursor-pointer group" title="Look at me! (Click for vibe!)">
+                                <!-- Dynamic Mascot Face Canvas/SVG -->
+                                <div id="mascotGraphic" class="text-8xl drop-shadow-[0_10px_20px_rgba(14,165,233,0.4)] transition-transform duration-300 group-hover:scale-110">
+                                    ☀️
+                                </div>
+                                <div class="absolute -bottom-2 bg-slate-900/90 text-sky-300 border border-sky-500/30 text-[10px] px-3 py-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                    <span id="mascotMood">Feeling Great! 🌟</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Creative Weather Vibe Quote -->
+                    <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-300 relative z-10">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span id="vibeQuote" class="italic">"A pleasant day for outdoors! Enjoy the breeze with a warm cup of tea."</span>
+                        </div>
+                        <span id="weatherCodeTag" class="hidden sm:inline-block px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 font-mono text-[10px]">
+                            Code: CLEAR_SKY
+                        </span>
+                    </div>
+
+                </div>
+
+                <!-- 24-Hour Interactive Visual Hourly Forecast Slider -->
+                <div class="glass-card rounded-3xl p-6 flex flex-col gap-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-bold text-sky-300 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-regular fa-clock text-sky-400"></i>
+                            <span id="hourlyForecastTitle">Hourly Forecast (24 Hours)</span>
+                        </h3>
+                        <span class="text-xs text-slate-400">Scroll ➔</span>
+                    </div>
+
+                    <!-- Hourly Horizontal Scroll Area -->
+                    <div id="hourlyTimelineContainer" class="flex gap-4 overflow-x-auto pb-3 pt-2 no-scrollbar">
+                        <div class="flex-shrink-0 w-20 p-3 rounded-2xl bg-slate-800/40 border border-slate-700/40 text-center flex flex-col items-center gap-2">
+                            <span class="text-xs text-slate-400">15:00</span>
+                            <i class="fa-solid fa-sun text-amber-400 text-xl"></i>
+                            <span class="text-sm font-bold">31°C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7-Day Forecast Grid -->
+                <div class="glass-card rounded-3xl p-6 flex flex-col gap-4">
+                    <h3 class="text-sm font-bold text-sky-300 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-regular fa-calendar-days text-sky-400"></i>
+                        <span id="weeklyForecastTitle">7-Day Weather Forecast</span>
+                    </h3>
+
+                    <div id="weeklyForecastContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- RIGHT / BOTTOM METRICS & AI COMPANION SECTION (Cols 8 to 12) -->
+            <section class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Detailed Weather Metrics Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    
+                    <!-- Wind Meter -->
+                    <div class="glass-card glass-card-hover rounded-2xl p-4 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400 text-xs">
+                            <span id="windLabel">Wind Speed</span>
+                            <i class="fa-solid fa-wind text-sky-400 text-base"></i>
+                        </div>
+                        <div class="my-2">
+                            <span id="windSpeed" class="text-2xl font-bold">14.2</span>
+                            <span class="text-xs text-slate-400">km/h</span>
+                        </div>
+                        <div class="text-[11px] text-sky-300 flex items-center gap-1">
+                            <i class="fa-solid fa-compass text-sky-400"></i>
+                            <span id="windDirection">Direction: SW (210°)</span>
+                        </div>
+                    </div>
+
+                    <!-- Humidity Meter -->
+                    <div class="glass-card glass-card-hover rounded-2xl p-4 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400 text-xs">
+                            <span id="humidityLabel">Humidity</span>
+                            <i class="fa-solid fa-droplet text-blue-400 text-base"></i>
+                        </div>
+                        <div class="my-2">
+                            <span id="humidityValue" class="text-2xl font-bold">78</span>
+                            <span class="text-xs text-slate-400">%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                            <div id="humidityBar" class="bg-gradient-to-r from-blue-500 to-sky-400 h-full w-[78%] rounded-full transition-all duration-1000"></div>
+                        </div>
+                    </div>
+
+                    <!-- UV Index Meter -->
+                    <div class="glass-card glass-card-hover rounded-2xl p-4 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400 text-xs">
+                            <span id="uvIndexLabel">UV Index</span>
+                            <i class="fa-solid fa-sun-plant-wilt text-amber-400 text-base"></i>
+                        </div>
+                        <div class="my-2 flex items-baseline gap-2">
+                            <span id="uvIndexValue" class="text-2xl font-bold">6.4</span>
+                            <span id="uvLevelTag" class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-semibold">Moderate</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400" id="uvTip">Wear sunglasses</p>
+                    </div>
+
+                    <!-- Atmospheric Pressure -->
+                    <div class="glass-card glass-card-hover rounded-2xl p-4 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400 text-xs">
+                            <span id="pressureLabel">Air Pressure</span>
+                            <i class="fa-solid fa-gauge-high text-emerald-400 text-base"></i>
+                        </div>
+                        <div class="my-2">
+                            <span id="pressureValue" class="text-2xl font-bold">1012</span>
+                            <span class="text-xs text-slate-400">hPa</span>
+                        </div>
+                        <div class="text-[11px] text-emerald-400 flex items-center gap-1">
+                            <i class="fa-solid fa-check"></i>
+                            <span id="pressureStatus">Normal Pressure</span>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <!-- Sun Position / Sunrise & Sunset Visual Arc -->
+                <div class="glass-card rounded-3xl p-5 flex flex-col gap-3">
+                    <div class="flex items-center justify-between text-xs font-bold text-sky-300 uppercase tracking-wider">
+                        <span class="flex items-center gap-2"><i class="fa-regular fa-sun text-amber-400"></i> <span id="sunCycleTitle">Sunrise & Sunset</span></span>
+                        <span class="text-slate-400 font-normal font-mono" id="sunCycleTimes">06:12 AM / 06:25 PM</span>
+                    </div>
+
+                    <!-- Visual Arc Container -->
+                    <div class="relative w-full h-20 flex items-end justify-between px-4 pt-4 border-b border-dashed border-slate-700">
+                        <div class="flex flex-col items-center z-10">
+                            <i class="fa-solid fa-mountain-sun text-amber-400 text-lg mb-1"></i>
+                            <span class="text-[10px] text-slate-400" id="sunriseLabel">Sunrise</span>
+                            <span class="text-xs font-semibold text-slate-200" id="sunriseTime">06:12 AM</span>
+                        </div>
+
+                        <!-- Sun Arc Graphic Curve -->
+                        <div class="absolute inset-x-8 top-2 bottom-0 border-t-2 border-dashed border-amber-400/40 rounded-t-full pointer-events-none"></div>
+                        <!-- Animated Sun Icon along curve -->
+                        <div id="sunArcIcon" class="absolute left-1/2 top-1 -translate-x-1/2 w-7 h-7 bg-amber-400 text-slate-900 rounded-full flex items-center justify-center shadow-lg shadow-amber-400/50 animate-pulse">
+                            <i class="fa-solid fa-sun text-xs"></i>
+                        </div>
+
+                        <div class="flex flex-col items-center z-10">
+                            <i class="fa-solid fa-moon text-indigo-400 text-lg mb-1"></i>
+                            <span class="text-[10px] text-slate-400" id="sunsetLabel">Sunset</span>
+                            <span class="text-xs font-semibold text-slate-200" id="sunsetTime">06:25 PM</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-slate-500 border-t border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p>© 2026 Atmosphere Studio. Built creatively with Open-Meteo.</p>
+            <div class="flex items-center gap-4 text-slate-400">
+                <span id="statusIndicator" class="flex items-center gap-1.5 text-emerald-400 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Live Weather Sync
+                </span>
+            </div>
+        </footer>
+
+    </div>
+
+
+    <!-- JavaScript App Controller & Animation Logic -->
+    <script>
+        // Global App State
+        const state = {
+            city: 'Colombo',
+            country: 'LK',
+            lat: 6.9271,
+            lon: 79.8612,
+            tempUnit: 'C', // 'C' or 'F'
+            lang: 'en',   // Default language set to English ('en')
+            weatherData: null,
+            weatherCode: 0,
+            audioPlaying: false,
+            audioSynthType: null
+        };
+
+        // Weather Code Mapping for Canvas, Icons, Translations, Mascot & Weather Audio/Danger Flags
+        const weatherCodeMap = {
+            0: { 
+                en: 'Clear Sky', si: 'පැහැදිලි අව්ව සහිත අහස', ta: 'தெளிவான வானம்', ja: '快晴', fr: 'Ciel dégagé',
+                icon: 'fa-sun text-amber-400', mascot: '☀️', mood: 'Feeling Great! 🌟', type: 'sun', isDanger: false 
+            },
+            1: { 
+                en: 'Mainly Clear', si: 'ප්‍රධාන වශයෙන් පැහැදිලි', ta: 'பெரும்பாலும் தெளிவானது', ja: 'ほぼ晴れ', fr: 'Principalement dégagé',
+                icon: 'fa-cloud-sun text-amber-300', mascot: '🌤️', mood: 'Pleasant Day! 😎', type: 'sun', isDanger: false 
+            },
+            2: { 
+                en: 'Partly Cloudy', si: 'අර්ධ වශයෙන් වලාකුළු සහිත', ta: 'பகுதி மேகமூட்டம்', ja: '晴れ時々曇り', fr: 'Partiellement nuageux',
+                icon: 'fa-cloud-sun text-slate-300', mascot: '⛅', mood: 'Cool Vibe! ☁️', type: 'clouds', isDanger: false 
+            },
+            3: { 
+                en: 'Overcast', si: 'වලාකුළු වලින් බර වූ අහස', ta: 'முழு மேகமூட்டம்', ja: '曇り', fr: 'Couvert',
+                icon: 'fa-cloud text-slate-400', mascot: '☁️', mood: 'Cloudy Skies! 🌥️', type: 'clouds', isDanger: false 
+            },
+            45: { 
+                en: 'Foggy', si: 'මීදුම් සහිත කාලගුණය', ta: 'பனிமூட்டம்', ja: '霧', fr: 'Brouillard',
+                icon: 'fa-smog text-slate-400', mascot: '🌫️', mood: 'Mist Magic! 🌫️', type: 'wind', isDanger: false 
+            },
+            48: { 
+                en: 'Depositing Rime Fog', si: 'තද මීදුම', ta: 'அடர்ந்த பனிமூட்டம்', ja: '濃霧', fr: 'Brouillard givrant',
+                icon: 'fa-smog text-slate-300', mascot: '🌫️', mood: 'Drive Safely! 🚘', type: 'wind', isDanger: false 
+            },
+            51: { 
+                en: 'Light Drizzle', si: 'සිහින් පොද වර්ෂාව', ta: 'லேசான தூறல்', ja: '霧雨', fr: 'Bruine légère',
+                icon: 'fa-cloud-rain text-sky-300', mascot: '🌧️', mood: 'Soft Drizzle! ☔', type: 'rain', isDanger: false 
+            },
+            61: { 
+                en: 'Slight Rain', si: 'මධ්‍යස්ථ වර්ෂාව', ta: 'மிதமான மழை', ja: '小雨', fr: 'Pluie légère',
+                icon: 'fa-cloud-showers-heavy text-blue-400', mascot: '🌧️', mood: 'Grab an Umbrella! ☂️', type: 'rain', isDanger: false 
+            },
+            63: { 
+                en: 'Moderate Rain', si: 'තද වර්ෂාව', ta: 'கனமழை', ja: '雨', fr: 'Pluie modérée',
+                icon: 'fa-cloud-showers-heavy text-blue-500', mascot: '🌧️', mood: 'Rainy Day! 🌧️', type: 'rain', isDanger: false 
+            },
+            65: { 
+                en: 'Heavy Rain', si: 'ඉතා තද වර්ෂාව (අනතුරු ඇඟවීම)', ta: 'மிகக் கனமழை', ja: '大雨', fr: 'Forte pluie',
+                icon: 'fa-cloud-showers-water text-rose-400', mascot: '⛈️', mood: 'Stay Safe Indoors! ⚠️', type: 'rain', isDanger: true 
+            },
+            80: { 
+                en: 'Rain Showers', si: 'වැසි වාර කිහිපයක්', ta: 'மழைச்சாரல்', ja: '俄雨', fr: 'Averses de pluie',
+                icon: 'fa-cloud-sun-rain text-sky-400', mascot: '🌦️', mood: 'Sun & Rain Mix! 🌈', type: 'rain', isDanger: false 
+            },
+            95: { 
+                en: 'Thunderstorm', si: 'ගගුරන අකුණු සහිත වැසි (අනතුරයි)', ta: 'இடியுடன் கூடிய மழை', ja: '雷雨', fr: 'Orage',
+                icon: 'fa-cloud-bolt text-red-400', mascot: '🌩️', mood: 'Thunder Warning! ⚡', type: 'thunder', isDanger: true 
+            },
+            71: { 
+                en: 'Slight Snow', si: 'සුළු හිම පතනය', ta: 'லேසான பனிப்பொழிவு', ja: '小雪', fr: 'Neige légère',
+                icon: 'fa-snowflake text-sky-200', mascot: '❄️', mood: 'Snowing Outside! ☃️', type: 'snow', isDanger: false 
+            },
+        };
+
+        // Multi-language Dictionary
+        const i18n = {
+            si: {
+                label: 'සිංහල',
+                subtitle: 'කාලගුණ විස්මිත අභ්‍යවකාශය',
+                searchPlaceholder: 'නගරයක් සොයන්න (Search City)...',
+                popular: 'ජනප්‍රිය:',
+                feelsLike: 'දැනෙන උෂ්ණත්වය:',
+                hourlyTitle: 'පැයෙන් පැය කාලගුණ අනාවැකිය (24 Hours)',
+                weeklyTitle: 'දින 7 ක කාලගුණ අනාවැකිය (7-Day Forecast)',
+                wind: 'සුළඟේ වේගය',
+                humidity: 'තෙතමනය (Humidity)',
+                uvIndex: 'UV දර්ශකය',
+                pressure: 'වායු පීඩනය',
+                sunCycle: 'හිරු නැඟීම සහ බැසීම',
+                sunrise: 'නැඟීම',
+                sunset: 'බැසීම',
+                alertTitle: 'තද වැසි සහ කුණාටු අනතුරු ඇඟවීම (Heavy Rain Warning)',
+                alertDesc: 'ප්‍රදේශයට අධික වර්ෂාපතනයක් වාර්තා වේ. සුරක්ෂිතව අභ්‍යන්තරයේ රැඳී සිටින්න!'
+            },
+            en: {
+                label: 'English',
+                subtitle: 'Creative Weather Universe',
+                searchPlaceholder: 'Search City...',
+                popular: 'Popular:',
+                feelsLike: 'Feels Like:',
+                hourlyTitle: 'Hourly Forecast (24 Hours)',
+                weeklyTitle: '7-Day Weather Forecast',
+                wind: 'Wind Speed',
+                humidity: 'Humidity',
+                uvIndex: 'UV Index',
+                pressure: 'Air Pressure',
+                sunCycle: 'Sunrise & Sunset',
+                sunrise: 'Sunrise',
+                sunset: 'Sunset',
+                alertTitle: 'Heavy Weather Alert / Extreme Rain',
+                alertDesc: 'Heavy rainfall reported in your location. Please stay safe indoors!'
+            },
+            ta: {
+                label: 'தமிழ்',
+                subtitle: 'படைப்பாற்றல் வானிலை அனுபவம்',
+                searchPlaceholder: 'நகரத்தைத் தேடுங்கள்...',
+                popular: 'பிரபலமானவை:',
+                feelsLike: 'உணரப்படும் வெப்பநிலை:',
+                hourlyTitle: 'மணிநேர வானிலை (24 மணிநேரம்)',
+                weeklyTitle: '7-நாள் வானிலை அறிக்கை',
+                wind: 'காற்றின் வேகம்',
+                humidity: 'ஈரப்பதம்',
+                uvIndex: 'UV குறியீடு',
+                pressure: 'காற்றழுத்தம்',
+                sunCycle: 'சூரிய உதயம் & அஸ்தமனம்',
+                sunrise: 'உதயம்',
+                sunset: 'அஸ்தமனம்',
+                alertTitle: 'கனமழை எச்சரிக்கை',
+                alertDesc: 'உங்கள் பகுதியில் கனமழை பெய்ய வாய்ப்புள்ளது. பாதுகாப்பாக இருங்கள்!'
+            },
+            ja: {
+                label: '日本語',
+                subtitle: 'クリエイティブ・ウェザー・エクスペリエンス',
+                searchPlaceholder: '都市名を検索...',
+                popular: '人気:',
+                feelsLike: '体感温度:',
+                hourlyTitle: '24時間予報',
+                weeklyTitle: '7日間天気予報',
+                wind: '風速',
+                humidity: '湿度',
+                uvIndex: 'UV指数',
+                pressure: '気圧',
+                sunCycle: '日の出と日の入り',
+                sunrise: '日の出',
+                sunset: '日の入り',
+                alertTitle: '大雨・荒天警報',
+                alertDesc: '大雨が報告されています。屋内でお過ごしください。'
+            },
+            fr: {
+                label: 'Français',
+                subtitle: 'Expérience Météo Créative',
+                searchPlaceholder: 'Rechercher une ville...',
+                popular: 'Populaire:',
+                feelsLike: 'Ressenti:',
+                hourlyTitle: 'Prévisions horaires (24h)',
+                weeklyTitle: 'Prévisions sur 7 jours',
+                wind: 'Vitesse du vent',
+                humidity: 'Humidité',
+                uvIndex: 'Indice UV',
+                pressure: 'Pression atmosphérique',
+                sunCycle: 'Lever & Coucher du soleil',
+                sunrise: 'Lever',
+                sunset: 'Coucher',
+                alertTitle: 'Alerte Météo Pluie Forte',
+                alertDesc: 'De fortes pluies sont signalées. Restez en sécurité à l\'intérieur !'
+            }
+        };
+
+        // Canvas Particle Background Engine
+        const canvas = document.getElementById('weatherCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let animationFrameId = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(type) {
+                this.reset(type);
+            }
+
+            reset(type) {
+                this.type = type;
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+
+                if (type === 'rain' || type === 'thunder') {
+                    this.length = Math.random() * 20 + 10;
+                    this.speed = Math.random() * 10 + 12;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                    this.width = Math.random() * 1.5 + 0.5;
+                } else if (type === 'sun') {
+                    this.radius = Math.random() * 3 + 1;
+                    this.speedY = -(Math.random() * 0.5 + 0.2);
+                    this.speedX = (Math.random() - 0.5) * 0.4;
+                    this.opacity = Math.random() * 0.6 + 0.2;
+                } else if (type === 'snow') {
+                    this.radius = Math.random() * 4 + 1;
+                    this.speedY = Math.random() * 1 + 0.5;
+                    this.speedX = Math.sin(Math.random() * Math.PI) * 0.8;
+                    this.opacity = Math.random() * 0.7 + 0.3;
+                } else { // clouds or fog
+                    this.radius = Math.random() * 40 + 20;
+                    this.speedX = Math.random() * 0.3 + 0.1;
+                    this.opacity = Math.random() * 0.08 + 0.02;
+                }
+            }
+
+            update() {
+                if (this.type === 'rain' || this.type === 'thunder') {
+                    this.y += this.speed;
+                    if (this.y > canvas.height) {
+                        this.y = -20;
+                        this.x = Math.random() * canvas.width;
+                    }
+                } else if (this.type === 'sun') {
+                    this.y += this.speedY;
+                    this.x += this.speedX;
+                    if (this.y < -10) this.y = canvas.height + 10;
+                } else if (this.type === 'snow') {
+                    this.y += this.speedY;
+                    this.x += this.speedX;
+                    if (this.y > canvas.height) this.y = -10;
+                } else {
+                    this.x += this.speedX;
+                    if (this.x > canvas.width + 50) this.x = -50;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                if (this.type === 'rain' || this.type === 'thunder') {
+                    ctx.strokeStyle = `rgba(186, 230, 253, ${this.opacity})`;
+                    ctx.lineWidth = this.width;
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(this.x - 2, this.y + this.length);
+                    ctx.stroke();
+                } else if (this.type === 'sun') {
+                    ctx.fillStyle = `rgba(253, 224, 71, ${this.opacity})`;
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (this.type === 'snow') {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = `rgba(226, 232, 240, ${this.opacity})`;
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function initParticles(type = 'sun') {
+            particles = [];
+            const count = (type === 'rain' || type === 'thunder') ? 120 : (type === 'sun' ? 60 : 40);
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(type));
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            animationFrameId = requestAnimationFrame(animateCanvas);
+        }
+        initParticles('sun');
+        animateCanvas();
+
+        // Web Audio Synthesizer for Weather-dependent Procedural Audio
+        let audioCtx = null;
+        let currentAudioNodes = [];
+
+        function stopCurrentAudio() {
+            currentAudioNodes.forEach(node => {
+                try { node.stop(); } catch(e){}
+                try { node.disconnect(); } catch(e){}
+            });
+            currentAudioNodes = [];
+        }
+
+        function playWeatherSound(weatherType, isDanger) {
+            if (!state.audioPlaying) return;
+
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            stopCurrentAudio();
+            state.audioSynthType = weatherType;
+
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+
+            // Generate Pink/White Noise Base
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                output[i] *= 0.05;
+                b6 = white * 0.115926;
+            }
+
+            if (weatherType === 'rain' || weatherType === 'thunder' || isDanger) {
+                // 🌧️ RAIN & STREAMS AUDIO SYNTH
+                const noiseSource = audioCtx.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                noiseSource.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = isDanger || weatherType === 'thunder' ? 1400 : 700;
+
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = isDanger ? 0.28 : 0.14;
+
+                noiseSource.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                noiseSource.start();
+                currentAudioNodes.push(noiseSource);
+
+                // If Thunderstorm or Danger Heavy Rain, add low rumble bass LFO
+                if (weatherType === 'thunder' || isDanger) {
+                    const osc = audioCtx.createOscillator();
+                    const oscGain = audioCtx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.value = 42; // Deep bass rumble
+
+                    const lfo = audioCtx.createOscillator();
+                    lfo.frequency.value = 0.2; 
+                    const lfoGain = audioCtx.createGain();
+                    lfoGain.gain.value = 18;
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(osc.frequency);
+
+                    oscGain.gain.value = 0.08;
+                    osc.connect(oscGain);
+                    oscGain.connect(audioCtx.destination);
+
+                    osc.start();
+                    lfo.start();
+                    currentAudioNodes.push(osc, lfo);
+                }
+            } else if (weatherType === 'wind' || weatherType === 'fog' || weatherType === 'clouds') {
+                // 💨 HOWLING WIND AUDIO SYNTH
+                const noiseSource = audioCtx.createBufferSource();
+                noiseSource.buffer = noiseBuffer;
+                noiseSource.loop = true;
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.Q.value = 3.5;
+
+                const lfo = audioCtx.createOscillator();
+                lfo.frequency.value = 0.22;
+                const lfoGain = audioCtx.createGain();
+                lfoGain.gain.value = 320;
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(filter.frequency);
+                filter.frequency.value = 420;
+
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = 0.22;
+
+                noiseSource.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                noiseSource.start();
+                lfo.start();
+                currentAudioNodes.push(noiseSource, lfo);
+            } else {
+                // ☀️ CALM / SUNNY SERENE ATMOSPHERE SYNTH
+                const freqs = [220, 277.18, 329.63]; // A Major Triad Drone
+                freqs.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+                    gain.gain.value = 0.02;
+
+                    const lfo = audioCtx.createOscillator();
+                    lfo.frequency.value = 0.1 + idx * 0.04;
+                    const lfoGain = audioCtx.createGain();
+                    lfoGain.gain.value = 0.01;
+                    lfo.connect(lfoGain);
+                    lfoGain.connect(gain.gain);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    lfo.start();
+                    currentAudioNodes.push(osc, lfo);
+                });
+            }
+        }
+
+        function toggleAmbientAudio() {
+            const btn = document.getElementById('audioToggleBtn');
+            const icon = document.getElementById('audioIcon');
+            const pulse = document.getElementById('audioPulse');
+
+            const codeInfo = weatherCodeMap[state.weatherCode] || weatherCodeMap[0];
+
+            if (!state.audioPlaying) {
+                state.audioPlaying = true;
+                playWeatherSound(codeInfo.type, codeInfo.isDanger);
+
+                icon.className = 'fa-solid fa-volume-high text-lg text-purple-300 animate-pulse';
+                pulse.classList.remove('hidden');
+                btn.classList.add('border-purple-500', 'bg-purple-900/50', 'shadow-purple-500/30');
+            } else {
+                state.audioPlaying = false;
+                stopCurrentAudio();
+
+                icon.className = 'fa-solid fa-volume-xmark text-lg text-purple-400';
+                pulse.classList.add('hidden');
+                btn.classList.remove('border-purple-500', 'bg-purple-900/50', 'shadow-purple-500/30');
+            }
+        }
+        document.getElementById('audioToggleBtn').addEventListener('click', toggleAmbientAudio);
+
+
+        // Fetch Weather Data using free Open-Meteo API
+        async function fetchWeatherData(lat, lon, cityName, countryCode) {
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto`;
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Weather API error');
+                const data = await response.json();
+
+                state.weatherData = data;
+                state.city = cityName;
+                state.country = countryCode || 'LK';
+                state.lat = lat;
+                state.lon = lon;
+                state.weatherCode = data.current.weather_code;
+
+                renderWeatherUI();
+            } catch (error) {
+                console.error('Failed to fetch weather:', error);
+                alert('කාලගුණ දත්ත ලබාගැනීමට අපොහොසත් විය. නැවත උත්සාහ කරන්න.');
+            }
+        }
+
+        // Search City Geocoding API
+        async function searchCity(query) {
+            if (!query || query.length < 2) return;
+            try {
+                const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                const searchResults = document.getElementById('searchResults');
+                searchResults.innerHTML = '';
+
+                if (data.results && data.results.length > 0) {
+                    data.results.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'px-4 py-3 hover:bg-sky-600/30 cursor-pointer flex items-center justify-between text-xs transition-colors';
+                        div.innerHTML = `
+                            <span class="font-semibold text-white">${item.name}</span>
+                            <span class="text-slate-400 text-[10px]">${item.admin1 || ''}, ${item.country}</span>
+                        `;
+                        div.onclick = () => {
+                            fetchWeatherData(item.latitude, item.longitude, item.name, item.country_code);
+                            searchResults.classList.add('hidden');
+                            document.getElementById('citySearchInput').value = item.name;
+                        };
+                        searchResults.appendChild(div);
+                    });
+                    searchResults.classList.remove('hidden');
+                } else {
+                    searchResults.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error('City search failed', err);
+            }
+        }
+
+        function fetchWeatherForCity(cityName) {
+            searchCity(cityName);
+        }
+
+        // Render Dynamic Visual Overlay specifically around the Temperature Box
+        function renderTemperatureWeatherEffects(type) {
+            const overlay = document.getElementById('tempEffectOverlay');
+            if (!overlay) return;
+            overlay.innerHTML = ''; // Clear existing visual elements
+
+            if (type === 'rain') {
+                // 🌧️ Rain Drop Overlay Effect inside temperature card
+                for (let i = 0; i < 18; i++) {
+                    const drop = document.createElement('div');
+                    drop.className = 'temp-fx-rain-drop';
+                    drop.style.left = `${Math.random() * 100}%`;
+                    drop.style.top = `${-Math.random() * 20}px`;
+                    drop.style.animationDuration = `${0.4 + Math.random() * 0.5}s`;
+                    drop.style.animationDelay = `${Math.random() * 1}s`;
+                    overlay.appendChild(drop);
+                }
+            } else if (type === 'sun') {
+                // ☀️ Sunny Glow Beam Effect
+                const sunBeam = document.createElement('div');
+                sunBeam.className = 'temp-fx-sun w-48 h-48 -left-10 -top-10';
+                overlay.appendChild(sunBeam);
+
+                const sunBeam2 = document.createElement('div');
+                sunBeam2.className = 'temp-fx-sun w-32 h-32 -right-6 -bottom-6 bg-amber-400/20';
+                overlay.appendChild(sunBeam2);
+            } else if (type === 'clouds') {
+                // ☁️ Drifting Cloud Icons inside temperature card
+                const c1 = document.createElement('i');
+                c1.className = 'fa-solid fa-cloud temp-fx-cloud text-5xl -top-2 right-2';
+                c1.style.animationDuration = '9s';
+
+                const c2 = document.createElement('i');
+                c2.className = 'fa-solid fa-cloud temp-fx-cloud text-4xl bottom-0 left-4 opacity-40';
+                c2.style.animationDuration = '12s';
+
+                overlay.appendChild(c1);
+                overlay.appendChild(c2);
+            } else if (type === 'thunder') {
+                // 🌩️ Lightning Flash Effect
+                const thunder = document.createElement('div');
+                thunder.className = 'temp-fx-thunder';
+                overlay.appendChild(thunder);
+
+                const bolt = document.createElement('i');
+                bolt.className = 'fa-solid fa-bolt text-yellow-300 text-6xl absolute top-2 right-4 opacity-30 animate-pulse';
+                overlay.appendChild(bolt);
+            } else if (type === 'snow') {
+                // ❄️ Snowflake falling effects
+                for (let i = 0; i < 12; i++) {
+                    const flake = document.createElement('i');
+                    flake.className = 'fa-solid fa-snowflake absolute text-sky-200/60 text-xs animate-rain-drop';
+                    flake.style.left = `${Math.random() * 100}%`;
+                    flake.style.animationDuration = `${1.8 + Math.random() * 1.5}s`;
+                    flake.style.animationDelay = `${Math.random() * 1.5}s`;
+                    overlay.appendChild(flake);
+                }
+            }
+        }
+
+        function renderWeatherUI() {
+            if (!state.weatherData) return;
+
+            const cur = state.weatherData.current;
+            const daily = state.weatherData.daily;
+            const hourly = state.weatherData.hourly;
+
+            // Info Mapping
+            const codeInfo = weatherCodeMap[cur.weather_code] || weatherCodeMap[0];
+
+            // 1. Update City & Date
+            document.getElementById('cityNameDisplay').innerText = `${state.city}`;
+            document.getElementById('countryTag').innerText = `${state.country}`;
+            
+            const now = new Date();
+            const dateStr = now.toLocaleDateString(state.lang === 'si' ? 'si-LK' : 'en-US', { weekday: 'long', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('localDateTime').innerText = dateStr;
+
+            // 2. Temperature Unit Calculation
+            let displayTemp = Math.round(cur.temperature_2m);
+            let feelsLike = Math.round(cur.apparent_temperature);
+            let minTemp = Math.round(daily.temperature_2m_min[0]);
+            let maxTemp = Math.round(daily.temperature_2m_max[0]);
+
+            if (state.tempUnit === 'F') {
+                displayTemp = Math.round((displayTemp * 9/5) + 32);
+                feelsLike = Math.round((feelsLike * 9/5) + 32);
+                minTemp = Math.round((minTemp * 9/5) + 32);
+                maxTemp = Math.round((maxTemp * 9/5) + 32);
+            }
+
+            document.getElementById('currentTemp').innerText = displayTemp;
+            document.getElementById('tempUnitDisplay').innerText = `°${state.tempUnit}`;
+            document.getElementById('feelsLikeTemp').innerText = `${feelsLike}°${state.tempUnit}`;
+            
+            const minLabel = state.lang === 'si' ? 'අවම' : (state.lang === 'ta' ? 'குறைந்தபட்ச' : (state.lang === 'ja' ? '最低' : (state.lang === 'fr' ? 'Min' : 'Min')));
+            const maxLabel = state.lang === 'si' ? 'උපරිම' : (state.lang === 'ta' ? 'அதிகபட்ச' : (state.lang === 'ja' ? '最高' : (state.lang === 'fr' ? 'Max' : 'Max')));
+            document.getElementById('minMaxTemp').innerText = `${minLabel} ${minTemp}° / ${maxLabel} ${maxTemp}°`;
+
+            // Condition badge
+            const localizedCondition = codeInfo[state.lang] || codeInfo.en;
+            document.getElementById('weatherConditionText').innerText = localizedCondition;
+            document.getElementById('heroConditionIcon').className = `fa-solid ${codeInfo.icon} text-xl animate-pulse`;
+
+            // Mascot Avatar & Mood
+            document.getElementById('mascotGraphic').innerText = codeInfo.mascot;
+            document.getElementById('mascotMood').innerText = codeInfo.mood;
+
+            // Render Dynamic Temperature Weather Animations (Rain, Sun, Clouds, Thunder)
+            renderTemperatureWeatherEffects(codeInfo.type);
+
+            // Ambient Quote
+            const quotes = {
+                sun: "☀️ A pleasant day for outdoors! Enjoy the breeze with a warm cup of tea.",
+                rain: "🌧️ Refreshing rain outside. Keep your umbrella ready or enjoy a hot drink indoors.",
+                clouds: "☁️ Cool and cloudy skies. Great weather to travel or take a stroll.",
+                thunder: "🌩️ Severe weather outside! Stay indoors and remain safe.",
+                wind: "💨 Blustery winds and mist in the air. Drive carefully!"
+            };
+            document.getElementById('vibeQuote').innerText = quotes[codeInfo.type] || quotes.sun;
+
+            // DYNAMIC DANGER WEATHER THEME & RED ALERT CONTROL
+            const alertBanner = document.getElementById('weatherAlertBanner');
+            const ambient = document.getElementById('ambientGlow');
+
+            if (codeInfo.isDanger) {
+                // 🚨 SEVERE DANGER WEATHER STATE (Red Theme)
+                alertBanner.classList.remove('hidden');
+                const dict = i18n[state.lang] || i18n.en;
+                document.getElementById('alertTitle').innerText = dict.alertTitle;
+                document.getElementById('alertDesc').innerText = dict.alertDesc;
+
+                ambient.style.background = 'radial-gradient(circle at 50% 20%, rgba(225, 29, 72, 0.45), transparent 75%)';
+                document.getElementById('weatherCodeTag').className = 'px-2.5 py-1 rounded-lg bg-red-900/60 text-red-300 border border-red-500/40 font-mono text-[10px] animate-pulse';
+            } else {
+                // 🌿 NORMAL CALM WEATHER STATE
+                alertBanner.classList.add('hidden');
+                document.getElementById('weatherCodeTag').className = 'hidden sm:inline-block px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 font-mono text-[10px]';
+
+                if (codeInfo.type === 'sun') {
+                    ambient.style.background = 'radial-gradient(circle at 50% 20%, rgba(245, 158, 11, 0.25), transparent 70%)';
+                } else if (codeInfo.type === 'rain') {
+                    ambient.style.background = 'radial-gradient(circle at 50% 20%, rgba(14, 165, 233, 0.3), transparent 70%)';
+                } else if (codeInfo.type === 'thunder') {
+                    ambient.style.background = 'radial-gradient(circle at 50% 20%, rgba(168, 85, 247, 0.35), transparent 70%)';
+                } else {
+                    ambient.style.background = 'radial-gradient(circle at 50% 20%, rgba(100, 116, 139, 0.25), transparent 70%)';
+                }
+            }
+
+            // Sync Live Audio Sound if player is active
+            if (state.audioPlaying) {
+                playWeatherSound(codeInfo.type, codeInfo.isDanger);
+            }
+
+            // Canvas Particle Switch
+            initParticles(codeInfo.type);
+
+            // 3. Update Detailed Metrics
+            document.getElementById('windSpeed').innerText = cur.wind_speed_10m;
+            document.getElementById('windDirection').innerText = `${state.lang === 'si' ? 'දිශාව' : 'Dir'}: ${cur.wind_direction_10m}°`;
+            
+            document.getElementById('humidityValue').innerText = cur.relative_humidity_2m;
+            document.getElementById('humidityBar').style.width = `${cur.relative_humidity_2m}%`;
+
+            const uvVal = daily.uv_index_max[0] || 5.2;
+            document.getElementById('uvIndexValue').innerText = uvVal;
+
+            document.getElementById('pressureValue').innerText = Math.round(cur.surface_pressure);
+
+            // Sunrise & Sunset
+            const sunriseIso = daily.sunrise[0];
+            const sunsetIso = daily.sunset[0];
+            const srTime = sunriseIso ? sunriseIso.split('T')[1] : '06:12';
+            const ssTime = sunsetIso ? sunsetIso.split('T')[1] : '18:25';
+            document.getElementById('sunriseTime').innerText = srTime;
+            document.getElementById('sunsetTime').innerText = ssTime;
+            document.getElementById('sunCycleTimes').innerText = `${srTime} / ${ssTime}`;
+
+            // 4. Render 24-Hour Timeline
+            renderHourlyTimeline(hourly);
+
+            // 5. Render 7-Day Forecast
+            renderWeeklyForecast(daily);
+        }
+
+        function renderHourlyTimeline(hourly) {
+            const container = document.getElementById('hourlyTimelineContainer');
+            container.innerHTML = '';
+
+            const currentHourIndex = new Date().getHours();
+            
+            for (let i = currentHourIndex; i < currentHourIndex + 24; i++) {
+                if (!hourly.time[i]) break;
+                
+                const timeStr = hourly.time[i].split('T')[1];
+                let temp = Math.round(hourly.temperature_2m[i]);
+                if (state.tempUnit === 'F') temp = Math.round((temp * 9/5) + 32);
+                
+                const code = hourly.weather_code[i];
+                const codeObj = weatherCodeMap[code] || weatherCodeMap[0];
+
+                const card = document.createElement('div');
+                card.className = `flex-shrink-0 w-20 p-3 rounded-2xl border text-center flex flex-col items-center gap-2 transition-all hover:scale-105 ${i === currentHourIndex ? 'bg-sky-500/20 border-sky-400 text-white shadow-lg' : 'bg-slate-800/40 border-slate-700/40 text-slate-300'}`;
+                
+                card.innerHTML = `
+                    <span class="text-[11px] font-mono text-slate-400">${timeStr}</span>
+                    <i class="fa-solid ${codeObj.icon} text-lg"></i>
+                    <span class="text-xs font-bold">${temp}°${state.tempUnit}</span>
+                `;
+                container.appendChild(card);
+            }
+        }
+
+        function renderWeeklyForecast(daily) {
+            const container = document.getElementById('weeklyForecastContainer');
+            container.innerHTML = '';
+
+            const daysMap = {
+                si: ['ඉරිදා', 'සඳුදා', 'අඟහරුවාදා', 'බදාදා', 'බ්‍රහස්පතින්දා', 'සිකුරාදා', 'සෙනසුරාදා'],
+                en: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                ta: ['ஞாயிறு', 'திங்கள்', 'செவ்வாய்', 'புதன்', 'வியாழன்', 'வெள்ளி', 'சனி'],
+                ja: ['日', '月', '火', '水', '木', '金', '土'],
+                fr: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+            };
+
+            const todayLabel = {
+                si: 'අද', en: 'Today', ta: 'இன்று', ja: '今日', fr: 'Aujourd\'hui'
+            };
+
+            const activeDays = daysMap[state.lang] || daysMap.en;
+
+            for (let i = 0; i < 7; i++) {
+                if (!daily.time[i]) break;
+
+                const date = new Date(daily.time[i]);
+                const dayName = i === 0 ? (todayLabel[state.lang] || 'Today') : activeDays[date.getDay()];
+                
+                let min = Math.round(daily.temperature_2m_min[i]);
+                let max = Math.round(daily.temperature_2m_max[i]);
+                if (state.tempUnit === 'F') {
+                    min = Math.round((min * 9/5) + 32);
+                    max = Math.round((max * 9/5) + 32);
+                }
+
+                const code = daily.weather_code[i];
+                const codeObj = weatherCodeMap[code] || weatherCodeMap[0];
+                const condText = codeObj[state.lang] || codeObj.en;
+
+                const item = document.createElement('div');
+                item.className = 'p-3 rounded-2xl bg-slate-800/40 border border-slate-700/40 flex items-center justify-between text-xs hover:border-sky-500/40 transition-colors';
+                
+                item.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid ${codeObj.icon} text-base w-5 text-center"></i>
+                        <span class="font-semibold text-slate-200">${dayName}</span>
+                    </div>
+                    <span class="text-slate-400 text-[10px] hidden sm:inline">${condText}</span>
+                    <div class="font-mono font-bold">
+                        <span class="text-sky-300">${max}°</span>
+                        <span class="text-slate-500">/ ${min}°</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            }
+        }
+
+        // Language Select Controller Functions
+        function setAppLanguage(langCode) {
+            if (!i18n[langCode]) return;
+            state.lang = langCode;
+
+            // Update Header Button Label
+            const dict = i18n[langCode];
+            document.getElementById('currentLangLabel').innerText = dict.label;
+
+            // Update Checkmark Indicators
+            document.querySelectorAll('.lang-check').forEach(el => el.classList.add('hidden'));
+            const activeCheck = document.getElementById(`check-${langCode}`);
+            if (activeCheck) activeCheck.classList.remove('hidden');
+
+            // Close Dropdown Menu
+            document.getElementById('langDropdownMenu').classList.add('hidden');
+
+            // Update UI Texts
+            document.getElementById('appSubtitle').innerText = dict.subtitle;
+            document.getElementById('citySearchInput').placeholder = dict.searchPlaceholder;
+            document.getElementById('popularLabel').innerText = dict.popular;
+            document.getElementById('feelsLikeLabel').innerText = dict.feelsLike;
+            document.getElementById('hourlyForecastTitle').innerText = dict.hourlyTitle;
+            document.getElementById('weeklyForecastTitle').innerText = dict.weeklyTitle;
+            document.getElementById('windLabel').innerText = dict.wind;
+            document.getElementById('humidityLabel').innerText = dict.humidity;
+            document.getElementById('uvIndexLabel').innerText = dict.uvIndex;
+            document.getElementById('pressureLabel').innerText = dict.pressure;
+            document.getElementById('sunCycleTitle').innerText = dict.sunCycle;
+            document.getElementById('sunriseLabel').innerText = dict.sunrise;
+            document.getElementById('sunsetLabel').innerText = dict.sunset;
+
+            renderWeatherUI();
+        }
+
+        // Toggle Language Dropdown
+        const langSelectBtn = document.getElementById('langSelectBtn');
+        const langDropdownMenu = document.getElementById('langDropdownMenu');
+
+        if (langSelectBtn && langDropdownMenu) {
+            langSelectBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                langDropdownMenu.classList.toggle('hidden');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#langSelectDropdownContainer')) {
+                    langDropdownMenu.classList.add('hidden');
+                }
+            });
+        }
+
+        // Search Input Handlers
+        const searchInput = document.getElementById('citySearchInput');
+        let searchTimeout;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchCity(e.target.value);
+            }, 400);
+        });
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            searchCity(searchInput.value);
+        });
+
+        // Hide search dropdown on click outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#citySearchInput') && !e.target.closest('#searchResults')) {
+                document.getElementById('searchResults').classList.add('hidden');
+            }
+        });
+
+        // Geolocation Button
+        document.getElementById('geoLocateBtn').addEventListener('click', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        fetchWeatherData(pos.coords.latitude, pos.coords.longitude, 'මා සිටින ස්ථානය', 'LK');
+                    },
+                    (err) => alert('ස්ථානය තහවුරු කරගැනීමට නොහැකි විය.')
+                );
+            }
+        });
+
+        // Temperature Unit Switcher
+        document.getElementById('unitToggleBtn').addEventListener('click', () => {
+            state.tempUnit = state.tempUnit === 'C' ? 'F' : 'C';
+            document.getElementById('unitToggleBtn').innerText = `°${state.tempUnit}`;
+            renderWeatherUI();
+        });
+
+        // Refresh Button
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            fetchWeatherData(state.lat, state.lon, state.city, state.country);
+        });
+
+        // Initial Startup
+        window.onload = function() {
+            // Default to Colombo, Sri Lanka
+            fetchWeatherData(6.9271, 79.8612, 'Colombo', 'LK');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-labelledby="title desc">
+<title id="title">Akila Sandaruwan AS logo</title>
+<desc id="desc">Stylized AS monogram with a cyan blue gradient and crown accent</desc>
+<defs>
+  <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#6af7e7"/>
+    <stop offset="0.5" stop-color="#38bdf8"/>
+    <stop offset="1" stop-color="#7c6cff"/>
+  </linearGradient>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="4" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+<rect x="8" y="8" width="144" height="144" rx="38" fill="#07101d" stroke="url(#g)" stroke-width="4"/>
+<path d="M36 111 70 45h17l-13 25h-9l-22 41z" fill="#f8fbff"/>
+<path d="M72 111 92 73h31l-8 14H98l-5 10h18c11 0 18 6 18 14 0 12-10 20-27 20H72l8-14h23c5 0 8-2 8-5 0-2-2-3-6-3z" fill="url(#g)" filter="url(#glow)"/>
+<path d="m68 37 7-11 7 10 10-8 3 13H63l2-13 9 9z" fill="#f7fbff"/>
+<circle cx="47" cy="118" r="3" fill="#6af7e7"/><circle cx="125" cy="48" r="3" fill="#7c6cff"/>
+</svg>
